@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { extend, createThreeRoot, RenderProps } from "../core";
 import { createPointerEvents } from "./events";
 import { RootState, ThreeContext } from "../core/store";
-import { Accessor, createEffect, onCleanup, JSX, mergeProps } from "solid-js";
+import { Accessor, createEffect, onCleanup, JSX, mergeProps, onMount } from "solid-js";
 import { insert } from "../renderer";
 import { Instance } from "../core/renderer";
 import { StoreApi } from "zustand/vanilla";
@@ -47,6 +47,9 @@ export interface Props extends Omit<RenderProps<HTMLCanvasElement>, "size" | "ev
 // ];
 
 export function Canvas(props: Props) {
+
+  let root: StoreApi<RootState>
+
   props = mergeProps(
     {
       height: "100vh",
@@ -72,26 +75,31 @@ export function Canvas(props: Props) {
     </div>
   ) as any;
 
-  const root = createThreeRoot(canvas, {
-    events: createPointerEvents,
-    size: containerRef.getBoundingClientRect(),
-    camera: props.camera,
-    shadows: props.shadows
-  });
+  onMount(() => {
 
-  new ResizeObserver(entries => {
-    if (entries[0]?.target !== containerRef) return;
-    root.getState().setSize(entries[0].contentRect.width, entries[0].contentRect.height);
-  }).observe(containerRef);
+    root = createThreeRoot(canvas, {
+      events: createPointerEvents,
+      size: containerRef.getBoundingClientRect(),
+      camera: props.camera,
+      shadows: props.shadows
+    });
 
-  insert(
-    root.getState().scene as unknown as Instance,
-    (
+    new ResizeObserver(entries => {
+      if (entries[0]?.target !== containerRef) return;
+      root.getState().setSize(entries[0].contentRect.width, entries[0].contentRect.height);
+    }).observe(containerRef);
+
+    insert(
+      root.getState().scene as unknown as Instance,
       (
-        <ThreeContext.Provider value={root}>{props.children}</ThreeContext.Provider>
-      ) as unknown as Accessor<Instance[]>
-    )()
-  );
+        (
+          <ThreeContext.Provider value={root}>{props.children}</ThreeContext.Provider>
+        ) as unknown as Accessor<Instance[]>
+      )()
+    );
+
+
+  })
 
   onCleanup(() => {
     log("three", "cleanup");
