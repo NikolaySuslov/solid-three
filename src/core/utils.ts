@@ -335,21 +335,21 @@ export function applyProp(
       else targetProp.set(value);
       // Auto-convert sRGB colors, for now ...
       // https://github.com/pmndrs/react-three-fiber/issues/344
-      if (!rootState.linear && isColor) targetProp.convertSRGBToLinear();
+      if (!rootState?.linear && isColor) targetProp.convertSRGBToLinear();
     }
     // Else, just overwrite the value
   } else {
     currentInstance[key] = value;
     // Auto-convert sRGB textures, for now ...
     // https://github.com/pmndrs/react-three-fiber/issues/344
-    if (!rootState.linear && currentInstance[key] instanceof THREE.Texture) {
+    if (!rootState?.linear && currentInstance[key] instanceof THREE.Texture) {
       currentInstance[key].encoding = THREE.sRGBEncoding;
     }
   }
 
   if (
     // localState.parent &&
-    rootState.internal &&
+    rootState?.internal &&
     instance.raycast
     // prevHandlers !== localState.eventCount
   ) {

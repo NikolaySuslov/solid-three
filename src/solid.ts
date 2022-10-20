@@ -32,7 +32,7 @@ export function createSolidRenderer({
 }: ThreeRenderer) {
   return createRenderer<Instance>({
     // @ts-ignore
-    createElement(element: string, args) {
+    createElement(element: string, args: any) {
       log("three", "createElement", element);
       if (element === "scene") {
         return prepare<Instance>(new Scene() as unknown as Instance);
@@ -66,6 +66,23 @@ export function createSolidRenderer({
 
       if (key === "attach" && node.__r3f.parent) {
         attach(node.__r3f.parent, node, value);
+      }
+
+      if (key === "args" && node.__r3f?.parent) {
+        //console.log("ARGS: ", key)
+        let par = node.__r3f.parent
+        let type = node.type;
+        let root = useContext(ThreeContext);
+        removeChild(node.__r3f.parent, node);
+        let ins = createInstance(
+          type,
+          {
+            args: value
+          },
+          root
+        );
+        appendChild(par, ins);
+
       }
     },
     insertNode(parent, node, anchor) {
