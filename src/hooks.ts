@@ -83,7 +83,7 @@ export function useFrame(
 ): void {
   const subscribe = useStore().getState().internal.subscribe;
   let cleanup = subscribe(
-    (t, delta) => untrack(() => callback(t, delta)),
+    (t, delta, frame) => untrack(() => callback(t, delta, frame)),
     renderPriority
   );
 

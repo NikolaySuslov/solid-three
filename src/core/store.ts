@@ -42,7 +42,7 @@ export type Raycaster = THREE.Raycaster & {
   computeOffsets?: ComputeOffsetsFunction;
 };
 
-export type RenderCallback = (state: RootState, delta: number) => void;
+export type RenderCallback = (state: RootState, delta: number, frame?: THREE.XRFrame) => void;
 
 export type Performance = {
   current: number;
@@ -114,6 +114,7 @@ export type RootState = {
 
   events: EventManager<any>;
   internal: InternalState;
+  xr: { connect: () => void; disconnect: () => void }
 };
 
 export type FilterFunction = (
@@ -164,7 +165,8 @@ const createThreeStore = (
   advance: (
     timestamp: number,
     runGlobalEffects?: boolean,
-    state?: RootState
+    state?: RootState,
+    frame?: THREE.XRFrame
   ) => void,
   props: StoreProps
 ): UseStore<RootState> => {
@@ -201,7 +203,7 @@ const createThreeStore = (
     clock.elapsedTime = 0;
   }
 
-  const rootState = create<RootState>(
+  const rootState = create<RootState>()(
     subscribeWithSelector((set, get) => {
       // Create custom raycaster
       const raycaster = new THREE.Raycaster() as Raycaster;
@@ -266,37 +268,75 @@ const createThreeStore = (
       const setPerformanceCurrent = (current: number) =>
         set((state) => ({ performance: { ...state.performance, current } }));
 
-      // Handle frame behavior in WebXR
-      const handleXRFrame = (timestamp: number) => {
-        const state = get();
-        if (state.frameloop === "never") return;
+      // // Handle frame behavior in WebXR
+      // const handleXRFrame = (timestamp: number) => {
+      //   const state = get();
+      //   if (state.frameloop === "never") return;
 
-        advance(timestamp, true);
-      };
+      //   advance(timestamp, true);
+      // };
 
-      // Toggle render switching on session
-      const handleSessionChange = () => {
-        gl.xr.enabled = gl.xr.isPresenting;
-        gl.setAnimationLoop(gl.xr.isPresenting ? handleXRFrame : null);
+      // // Toggle render switching on session
+      // const handleSessionChange = () => {
+      //   gl.xr.enabled = gl.xr.isPresenting;
+      //   gl.setAnimationLoop(gl.xr.isPresenting ? handleXRFrame : null);
 
-        // If exiting session, request frame
-        if (!gl.xr.isPresenting) invalidate(get());
-      };
+      //   // If exiting session, request frame
+      //   if (!gl.xr.isPresenting) invalidate(get());
+      // };
 
-      // WebXR session manager
-      const xr = {
-        connect() {
-          gl.xr.addEventListener("sessionstart", handleSessionChange);
-          gl.xr.addEventListener("sessionend", handleSessionChange);
-        },
-        disconnect() {
-          gl.xr.removeEventListener("sessionstart", handleSessionChange);
-          gl.xr.removeEventListener("sessionend", handleSessionChange);
-        },
-      };
+      // // WebXR session manager
+      // const xr = {
+      //   connect() {
+      //     gl.xr.addEventListener("sessionstart", handleSessionChange);
+      //     gl.xr.addEventListener("sessionend", handleSessionChange);
+      //   },
+      //   disconnect() {
+      //     gl.xr.removeEventListener("sessionstart", handleSessionChange);
+      //     gl.xr.removeEventListener("sessionend", handleSessionChange);
+      //   },
+      // };
 
-      // Subscribe to WebXR session events
-      if (gl.xr) xr.connect();
+      // // Subscribe to WebXR session events
+      // if (gl.xr) xr.connect();
+
+
+            // Set up XR (one time only!)
+            //if (true) {
+              // Handle frame behavior in WebXR
+              const handleXRFrame: THREE.XRFrameRequestCallback = (timestamp: number, frame?: THREE.XRFrame) => {
+                const state = get()
+                if (state.frameloop === 'never') return
+                advance(timestamp, true, state, frame)
+              }
+      
+              // Toggle render switching on session
+              const handleSessionChange = () => {
+                const state = get()
+                state.gl.xr.enabled = state.gl.xr.isPresenting
+      
+                state.gl.xr.setAnimationLoop(state.gl.xr.isPresenting ? handleXRFrame : null)
+                if (!state.gl.xr.isPresenting) invalidate(state)
+              }
+      
+              // WebXR session manager
+              const xr = {
+                connect() {
+                  //const gl = store.getState().gl
+                  gl.xr.addEventListener('sessionstart', handleSessionChange)
+                  gl.xr.addEventListener('sessionend', handleSessionChange)
+                },
+                disconnect() {
+                  //const gl = store.getState().gl
+                  gl.xr.removeEventListener('sessionstart', handleSessionChange)
+                  gl.xr.removeEventListener('sessionend', handleSessionChange)
+                },
+              }
+      
+              // Subscribe to WebXR session events
+              if (gl.xr) xr.connect()
+             // state.set({ xr })
+          //  }
 
       return {
         gl,
@@ -385,7 +425,8 @@ const createThreeStore = (
           initialHits: [],
           capturedMap: new Map(),
 
-          xr,
+          xr: xr,
+          //xr: null as unknown as { connect: () => void; disconnect: () => void },
           subscribe: (ref: RenderCallback, priority = 0) => {
             set(({ internal }) => ({
               internal: {
