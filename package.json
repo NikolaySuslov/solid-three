@@ -1,6 +1,6 @@
 {
   "name": "@krestianstvo/solid-three",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "module": "./dist/index.mjs",
   "main": "./dist/index.cjs.js",
   "types": "./types/index.d.ts",
